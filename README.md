@@ -3,7 +3,7 @@ controller.The initializer add ```busybox```pod as sidecar and add finalizer to 
 
 ### Note:
 Initializers are alpha feature hence we need to enable it manually. For minikube use the flowing command to
-to start minikube with admission controller enabled.
+to start minikube with initializer enabled.
 ```
 minikube start --extra-config=apiserver.Admission.PluginNames="Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota"
 ```
