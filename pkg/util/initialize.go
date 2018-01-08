@@ -38,6 +38,11 @@ func AddSidecarBusyBox(clientset  kubernetes.Clientset  ,customdeployment *crdv1
 	return initalizedDeployment,nil
 }
 
+func AddFinalizer(in metav1.ObjectMeta, finalizername string) (metav1.ObjectMeta) {
+	in.Finalizers= append(in.Finalizers, finalizername)
+	return in
+}
+
 func RemoveInitializer(in metav1.ObjectMeta) metav1.ObjectMeta {
 	if in.GetInitializers()!=nil{
 		if len(in.GetInitializers().Pending)==1{

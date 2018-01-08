@@ -1,20 +1,20 @@
-Custom Kubernetes controller for CRD. It is a simplified deployment controller.
+Custom Kubernetes controller for CRD with Initializer and Finalizer. It is simple custom deployment type
+controller.The initializer add ```busybox```pod as sidecar and add finalizer to delete all pods when customdeployment is deleted.
 
-### Commands:
-Define CRD:
+### Note:
+Initializers are alpha feature hence we need to enable it manually. For minikube use the flowing command to
+to start minikube with admission controller enabled.
+```
+minikube start --extra-config=apiserver.Admission.PluginNames="Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota"
+```
+
+## Commands:
+#### Step 1: Define CRD:
 ```
 kubectl create -f ./yaml/crd-customdeployment.yaml
 ```
-Create custom deployment:
-```
-kubectl create -f ./yaml/customdeployment.yaml
-```
-Run controller:
-```
-go run main.go
-```
 
-### Yaml for CRD:
+##### Yaml for CRD:
 ```yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -32,7 +32,66 @@ spec:
       - csd
 ```
 
-### Yaml for custom-deployment:
+### Step 2: Create initializer configuration:
+```
+kubectl create -f ./yaml/initializerConfiguration.yaml
+```
+##### Yaml for Initizer configuration:
+```yaml
+apiVersion: admissionregistration.k8s.io/v1alpha1
+kind: InitializerConfiguration
+metadata:
+  name: custom-deployment-initializer
+initializers:
+  - name: addbusybox.crd.emruz.com
+    rules:
+      - apiGroups:
+          - crd.emruz.com
+        apiVersions:
+          - v1alpha1
+        resources:
+          - customdeployments
+  - name: addfinalizer.crd.emruz.com
+    rules:
+      - apiGroups:
+          - crd.emruz.com
+        apiVersions:
+          - v1alpha1
+        resources:
+          - customdeployments
+
+```
+
+### Step 3: Create Busybox configmap:
+```
+kubectl create -f ./yaml/busybox-configmap.yaml
+```
+
+##### Yaml for Busybox configmap:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: busybox-sidecar-configmap
+data:
+  config: |
+    containers:
+      - name: busybox-sidecar
+        image: busybox:glibc
+        imagePullPolicy: IfNotPresent
+        command: ["sh","-c","while true; do date; sleep 5; done"]
+```
+### Step 4: Run controller:
+```
+go run main.go
+```
+### Step 5: Create custom deployment:
+```
+kubectl create -f ./yaml/customdeployment.yaml
+```
+
+
+#### Yaml for custom-deployment:
 ```yaml
 apiVersion: "crd.emruz.com/v1alpha1"
 kind: CustomDeployment

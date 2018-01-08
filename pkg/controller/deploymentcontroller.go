@@ -316,7 +316,29 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 		customdeployment:=obj.(*crdv1alpha1.CustomDeployment).DeepCopy()
 		fmt.Println("Event..............................")
 		if customdeployment.DeletionTimestamp != nil{
-			// do something if finalizer exist
+			// check if it has finalizer
+			if customdeployment.GetFinalizers()!=nil{
+				finalizers:=customdeployment.GetFinalizers()
+
+				// check if first finalizer match with deletepod.crd.emruz.com
+				if finalizers[0]=="deletepods.crd.emruz.com"{
+					//
+					_,err:=myutil.PatchCustomDeployment(c.clientset,customdeployment, func(deployment *crdv1alpha1.CustomDeployment) *crdv1alpha1.CustomDeployment {
+						// delete pods under this deployment
+						err:=myutil.DeletePods(c.kubeclient,c.podLabel)
+						if err!=nil{
+							fmt.Println("Failed to remove all pods. Reason: ",err)
+							return nil
+						}
+						// pods sucessfully removed. remove the finalizer
+						customdeployment.ObjectMeta=myutil.RemoveFinalizer(customdeployment.ObjectMeta)
+						return customdeployment
+					})
+					if err!=nil{
+						return err
+					}
+				}
+			}
 
 		}else if customdeployment.GetInitializers()!= nil{
 
@@ -325,7 +347,7 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 
 			// check if first initializer match with addbussybox.crd.emruz.com
 			if initializer[0].Name=="addbusybox.crd.emruz.com"{
-				// sidecar busybox container
+				// add sidecar container
 				_,err:=myutil.PatchCustomDeployment(c.clientset,customdeployment, func(deployment *crdv1alpha1.CustomDeployment) *crdv1alpha1.CustomDeployment {
 					// add bysybox as sidecar
 					modifiedDeployment,err:=myutil.AddSidecarBusyBox(c.kubeclient,deployment)
@@ -340,7 +362,24 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 				if err!=nil{
 					return err
 				}
+			}else if initializer[0].Name=="addfinalizer.crd.emruz.com"{ // check if first initializer match with addbussybox.crd.emruz.com
+
+				// sidecar busybox container
+				_,err:=myutil.PatchCustomDeployment(c.clientset,customdeployment, func(deployment *crdv1alpha1.CustomDeployment) *crdv1alpha1.CustomDeployment {
+					// add pod deletion finalizer as sidecar
+					deployment.ObjectMeta=myutil.AddFinalizer(deployment.ObjectMeta,"deletepods.crd.emruz.com")
+					if err!=nil{
+						fmt.Println("Failed to add Finalizer. Reason: ",err)
+						return nil
+					}
+					// sidecar successfully added. remove the initializer
+					deployment.ObjectMeta=myutil.RemoveInitializer(deployment.ObjectMeta)
+					return deployment
+				})
+				if err!=nil{
+					return err
 				}
+			}
 
 		}else{
 

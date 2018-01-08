@@ -1,9 +1,17 @@
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: InitializerConfiguration
 metadata:
-  name: busybox-sidecar
+  name: custom-deployment-initializer
 initializers:
   - name: addbusybox.crd.emruz.com
+    rules:
+      - apiGroups:
+          - crd.emruz.com
+        apiVersions:
+          - v1alpha1
+        resources:
+          - customdeployments
+  - name: addfinalizer.crd.emruz.com
     rules:
       - apiGroups:
           - crd.emruz.com
