@@ -1,0 +1,21 @@
+apiVersion: "crd.emruz.com/v1alpha1"
+kind: CustomDeployment
+metadata:
+  name:  my-customdeployment
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+     containers:
+      - name: webcalculator
+        image: emruzhossain/webcalculator:latest
+        ports:
+        - name:  container-port
+          containerPort:  9000
+          protocol: TCP

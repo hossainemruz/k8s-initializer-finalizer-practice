@@ -1,0 +1,22 @@
+package: crd-controller
+import:
+- package: k8s.io/api
+  subpackages:
+  - core/v1
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/apis/meta/v1
+  - pkg/runtime
+  - pkg/runtime/schema
+  - pkg/util/runtime
+  - pkg/util/wait
+  - pkg/watch
+- package: k8s.io/client-go
+  version: ^6.0.0
+  subpackages:
+  - kubernetes
+  - tools/cache
+  - tools/clientcmd
+  - util/homedir
+  - util/workqueue
+- package: k8s.io/code-generator
