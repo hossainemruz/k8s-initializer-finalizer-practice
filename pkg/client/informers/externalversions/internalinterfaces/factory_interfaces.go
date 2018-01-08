@@ -3,7 +3,7 @@
 package internalinterfaces
 
 import (
-	versioned "crd-controller/pkg/client/clientset/versioned"
+	versioned "k8s-initializer-finalizer-practice/pkg/client/clientset/versioned"
 	time "time"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: busybox-sidecar-configmap
+data:
+  config: |
+    containers:
+      - name: busybox-sidecar
+        image: busybox:glibc
+        imagePullPolicy: IfNotPresent
+        command: ["sh","-c","while true; do date; sleep 5; done"]

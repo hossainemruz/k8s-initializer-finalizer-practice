@@ -3,7 +3,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

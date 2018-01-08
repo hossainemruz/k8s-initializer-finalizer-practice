@@ -1,9 +1,9 @@
 package v1alpha1
 
 import (
-	scheme "crd-controller/pkg/client/clientset/versioned/scheme"
+	scheme "k8s-initializer-finalizer-practice/pkg/client/clientset/versioned/scheme"
 
-	v1alpha1 "crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	v1alpha1 "k8s-initializer-finalizer-practice/pkg/apis/crd.emruz.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

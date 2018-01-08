@@ -2,10 +2,13 @@ package controller
 
 import (
 
-	clientversioned "crd-controller/pkg/client/clientset/versioned"
-	crdv1alpha1 "crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	clientversioned "k8s-initializer-finalizer-practice/pkg/client/clientset/versioned"
+
+	crdv1alpha1 "k8s-initializer-finalizer-practice/pkg/apis/crd.emruz.com/v1alpha1"
+
 	api_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -24,6 +27,7 @@ import (
 	"math/rand"
 	"strconv"
 
+	myutil "k8s-initializer-finalizer-practice/pkg/util"
 )
 
 
@@ -55,10 +59,10 @@ func NewController(clientset clientversioned.Clientset, kubeclientset kubernetes
 	// create ListWatcher for custom deployment
 	deploymentListWatcher:=&cache.ListWatch{
 		ListFunc: func(options meta_v1.ListOptions) (rt.Object, error) {
-			return clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).List(meta_v1.ListOptions{})
+			return clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).List(meta_v1.ListOptions{IncludeUninitialized:true})
 		},
 		WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-			return clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Watch(options)
+			return clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Watch(meta_v1.ListOptions{IncludeUninitialized:true})
 		},
 	}
 
@@ -310,62 +314,92 @@ func (c *Controller)performActionOnThisDeploymentKey(key string) error {
 		}
 	}else{
 		customdeployment:=obj.(*crdv1alpha1.CustomDeployment).DeepCopy()
+		fmt.Println("Event..............................")
+		if customdeployment.DeletionTimestamp != nil{
+			// do something if finalizer exist
 
-		fmt.Println("Sync/Add/Update happed for deployment ",customdeployment.GetName())
+		}else if customdeployment.GetInitializers()!= nil{
 
-		fmt.Printf("Required: %v | Available: %v | Creating: %v	|	Terminating: %v\n",customdeployment.Spec.Replicas,customdeployment.Status.AvailableReplicas,customdeployment.Status.CreatingReplicas,customdeployment.Status.TerminatingReplicas)
+			// get pending initializers
+			initializer:=customdeployment.GetInitializers().Pending
 
-		label:=""
-
-		//If Current State is not same as Expected State preform necessary modification to meet the Goal.
-		if customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas<customdeployment.Spec.Replicas{
-
-			//create pod
-			pod,err:= c.CreateNewPod(customdeployment.Spec.Template, customdeployment)
-
-			//Failed to create to pod
-			if err!=nil{
-				fmt.Printf("Can't create pod. Reason: %v\n",err.Error())
-				return err
-			}
-
-			// Pod successfully created.
-			podName:=string(pod.GetName())
-			c.PodOwnerKey[podName]=key
-			c.PreviousPodPhase[podName]="Creating"
-
-			mp:=pod.GetLabels()
-			for key,value:= range mp{
-				label+=key+"="+value
-			}
-
-			c.podLabel=label
-
-			fmt.Printf("+++++Pod created. PodName: %s OwnerKey: %s	Label: %v\n",podName,key,label)
-			err2:=c.UpdateDeploymentStatus(customdeployment)
-
-			if err2!=nil{
-				fmt.Printf("Pod created but failed to update DeploymentStatus.")
-				return err2
-			}
-
-		}else if customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas> customdeployment.Spec.Replicas{
-
-			err:=c.DeletePod(customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas-customdeployment.Spec.Replicas)
-
-			if err!=nil{
-				fmt.Println("Can't Delete Pod. Reason: ",err)
-				return err
-			}
-
-			err=c.UpdateDeploymentStatus(customdeployment)
-			if err!=nil{
-				fmt.Println("Failed to update DeploymentStatus.")
-				return err
-			}
+			// check if first initializer match with addbussybox.crd.emruz.com
+			if initializer[0].Name=="addbusybox.crd.emruz.com"{
+				// sidecar busybox container
+				_,err:=myutil.PatchCustomDeployment(c.clientset,customdeployment, func(deployment *crdv1alpha1.CustomDeployment) *crdv1alpha1.CustomDeployment {
+					// add bysybox as sidecar
+					modifiedDeployment,err:=myutil.AddSidecarBusyBox(c.kubeclient,deployment)
+					if err!=nil{
+						fmt.Println("Failed to add BusyBox as Sidecar. Reason: ",err)
+						return nil
+					}
+					// sidecar successfully added. remove the initializer
+					modifiedDeployment.ObjectMeta=myutil.RemoveInitializer(modifiedDeployment.ObjectMeta)
+					return modifiedDeployment
+				})
+				if err!=nil{
+					return err
+				}
+				}
 
 		}else{
-			// Everything is ok. nothing to do. :)
+
+			fmt.Println("Sync/Add/Update happed for deployment ",customdeployment.GetName())
+
+			fmt.Printf("Required: %v | Available: %v | Creating: %v	|	Terminating: %v\n",customdeployment.Spec.Replicas,customdeployment.Status.AvailableReplicas,customdeployment.Status.CreatingReplicas,customdeployment.Status.TerminatingReplicas)
+
+			label:=""
+
+			//If Current State is not same as Expected State preform necessary modification to meet the Goal.
+			if customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas<customdeployment.Spec.Replicas{
+
+				//create pod
+				pod,err:= c.CreateNewPod(customdeployment.Spec.Template, customdeployment)
+
+				//Failed to create to pod
+				if err!=nil{
+					fmt.Printf("Can't create pod. Reason: %v\n",err.Error())
+					return err
+				}
+
+				// Pod successfully created.
+				podName:=string(pod.GetName())
+				c.PodOwnerKey[podName]=key
+				c.PreviousPodPhase[podName]="Creating"
+
+				mp:=pod.GetLabels()
+				for key,value:= range mp{
+					label+=key+"="+value
+				}
+
+				c.podLabel=label
+
+				fmt.Printf("+++++Pod created. PodName: %s OwnerKey: %s	Label: %v\n",podName,key,label)
+				err2:=c.UpdateDeploymentStatus(customdeployment)
+
+				if err2!=nil{
+					fmt.Printf("Pod created but failed to update DeploymentStatus.")
+					return err2
+				}
+
+			}else if customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas> customdeployment.Spec.Replicas{
+
+				err:=c.DeletePod(customdeployment.Status.AvailableReplicas+customdeployment.Status.CreatingReplicas-customdeployment.Spec.Replicas)
+
+				if err!=nil{
+					fmt.Println("Can't Delete Pod. Reason: ",err)
+					return err
+				}
+
+				err=c.UpdateDeploymentStatus(customdeployment)
+				if err!=nil{
+					fmt.Println("Failed to update DeploymentStatus.")
+					return err
+				}
+
+			}else{
+				// Everything is ok. nothing to do. :)
+			}
 		}
 	}
 	return  nil
@@ -499,11 +533,11 @@ func (c *Controller)performActionOnThisPodKey(key string) error {
 			return err
 		}
 
-		customdeployment:=ownerObj.(*crdv1alpha1.CustomDeployment).DeepCopy()
+		customdeployment:=ownerObj.(*crdv1alpha1.CustomDeployment)
 
 		err =c.UpdateDeploymentStatus(customdeployment)
 		if err!=nil{
-			fmt.Println("Can't update DeploymentStatus. Reason: ",err)
+			fmt.Println("From performActionOnThisPodKey: Can't update DeploymentStatus. Reason: ",err)
 			return err
 		}
 		fmt.Printf("Required: %v | Available: %v | Creating: %v	|	Terminating: %v\n",customdeployment.Spec.Replicas,customdeployment.Status.AvailableReplicas,customdeployment.Status.CreatingReplicas,customdeployment.Status.TerminatingReplicas)
@@ -615,16 +649,28 @@ func (c *Controller)UpdateDeploymentStatus(customdeployment *crdv1alpha1.CustomD
 
 	}
 
-	//Don't modify cache. Work on it's copy
-	customdeploymentCopy:= customdeployment.DeepCopy()
+	patchedDeployment,err2:=myutil.PatchCustomDeployment(c.clientset,customdeployment, func(deployment *crdv1alpha1.CustomDeployment) *crdv1alpha1.CustomDeployment {
+		deployment.Status.AvailableReplicas=int32(running)
+		deployment.Status.CreatingReplicas=int32(creating)
+		deployment.Status.TerminatingReplicas=int32(terminating)
+		return deployment
+	})
+	if err2!=nil{
+		fmt.Println("Can't patch deployment. Reason:",err)
+		return err2
+	}
+	fmt.Println("Succesfully patched ",patchedDeployment.Name)
 
-	customdeploymentCopy.Spec.Replicas = customdeployment.Spec.Replicas
-	customdeploymentCopy.Status.AvailableReplicas = int32(running)
-	customdeploymentCopy.Status.CreatingReplicas = int32(creating)
-	customdeploymentCopy.Status.TerminatingReplicas = int32(terminating)
-
-	//Now update the cache
-	_,err=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Update(customdeploymentCopy)
+	////Don't modify cache. Work on it's copy
+	//customdeploymentCopy:= customdeployment.DeepCopy()
+	//
+	//customdeploymentCopy.Spec.Replicas = customdeployment.Spec.Replicas
+	//customdeploymentCopy.Status.AvailableReplicas = int32(running)
+	//customdeploymentCopy.Status.CreatingReplicas = int32(creating)
+	//customdeploymentCopy.Status.TerminatingReplicas = int32(terminating)
+	//
+	////Now update the cache
+	//_,err=c.clientset.CrdV1alpha1().CustomDeployments(api_v1.NamespaceDefault).Update(customdeploymentCopy)
 
 	return err
 }

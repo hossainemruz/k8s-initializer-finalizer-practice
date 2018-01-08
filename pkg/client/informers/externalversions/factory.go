@@ -3,13 +3,13 @@
 package externalversions
 
 import (
-	versioned "crd-controller/pkg/client/clientset/versioned"
-	internalinterfaces "crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	versioned "k8s-initializer-finalizer-practice/pkg/client/clientset/versioned"
+	internalinterfaces "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/internalinterfaces"
 	reflect "reflect"
 	sync "sync"
 	time "time"
 
-	crd_emruz_com "crd-controller/pkg/client/informers/externalversions/crd.emruz.com"
+	crd_emruz_com "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/crd.emruz.com"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -1,7 +1,7 @@
 package fake
 
 import (
-	v1alpha1 "crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
+	v1alpha1 "k8s-initializer-finalizer-practice/pkg/apis/crd.emruz.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

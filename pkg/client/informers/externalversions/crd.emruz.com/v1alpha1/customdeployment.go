@@ -3,12 +3,12 @@
 package v1alpha1
 
 import (
-	versioned "crd-controller/pkg/client/clientset/versioned"
-	internalinterfaces "crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	versioned "k8s-initializer-finalizer-practice/pkg/client/clientset/versioned"
+	internalinterfaces "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/internalinterfaces"
 	time "time"
 
-	crd_emruz_com_v1alpha1 "crd-controller/pkg/apis/crd.emruz.com/v1alpha1"
-	v1alpha1 "crd-controller/pkg/client/listers/crd.emruz.com/v1alpha1"
+	crd_emruz_com_v1alpha1 "k8s-initializer-finalizer-practice/pkg/apis/crd.emruz.com/v1alpha1"
+	v1alpha1 "k8s-initializer-finalizer-practice/pkg/client/listers/crd.emruz.com/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

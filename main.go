@@ -2,7 +2,7 @@ package main
 
 import (
 	// "k8s.io/code-generator"
-	 "crd-controller/pkg/controller"
+	 "k8s-initializer-finalizer-practice/pkg/controller"
 
 )
 func main()  {

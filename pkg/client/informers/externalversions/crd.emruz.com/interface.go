@@ -3,9 +3,9 @@
 package crd
 
 import (
-	internalinterfaces "crd-controller/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/internalinterfaces"
 
-	v1alpha1 "crd-controller/pkg/client/informers/externalversions/crd.emruz.com/v1alpha1"
+	v1alpha1 "k8s-initializer-finalizer-practice/pkg/client/informers/externalversions/crd.emruz.com/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

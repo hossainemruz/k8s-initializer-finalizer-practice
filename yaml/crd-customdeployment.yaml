@@ -8,7 +8,7 @@ spec:
   scope: Namespaced
   names:
     plural: customdeployments
-    singular: customdeployments
+    singular: customdeployment
     kind: CustomDeployment
     shortNames:
       - csd
